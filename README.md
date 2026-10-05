@@ -15,6 +15,12 @@ Tudo foi testado do começo ao fim em 05/10/2026, num Windows 11 com Docker Desk
 
 Você **não** precisa instalar a AWS CLI nem Python: a linha de comando da AWS roda dentro de um contêiner.
 
+### E no Windows?
+
+Funciona, e foi testado justamente num Windows 11. Os arquivos `.sh` são scripts de Linux, mas você nunca roda eles direto. Quando você digita `docker compose run --rm cli 01-rede.sh`, o Docker abre um contêiner Linux, que já vem com a linha de comando da AWS, e roda o script lá dentro.
+
+No PowerShell você só digita comandos que começam com `docker`, e eles são iguais no Windows, no Mac e no Linux. Não abra os `.sh` com duplo clique. Se quiser ler ou mudar um deles, use o VS Code (veja "Se algo der errado").
+
 ## O que você vai montar
 
 ```text
