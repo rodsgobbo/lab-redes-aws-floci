@@ -10,7 +10,7 @@ Tudo foi testado do começo ao fim em 05/10/2026, num Windows 11 com Docker Desk
 
 - **Docker Desktop** (Windows ou Mac) ou **Docker Engine** (Linux). No Windows, ele usa o WSL 2 e pede a virtualização ligada na BIOS.
 - **8 GB de RAM** no Windows. O laboratório inteiro usou cerca de 140 MB; o resto é o próprio Docker.
-- **Internet só na primeira vez**, para baixar as imagens. Elas ocupam cerca de 1,1 GB em disco (Floci 323 MB, AWS CLI 649 MB, Ubuntu 119 MB), mais o nginx que o servidor instala.
+- **Internet só na primeira vez**, para baixar as imagens. Elas ocupam cerca de 1,3 GB em disco (Floci 323 MB, AWS CLI 649 MB, console 148 MB, Ubuntu 119 MB), mais o nginx que o servidor instala.
 - **Os arquivos deste repositório** no seu computador (veja o passo 0).
 
 Você **não** precisa instalar a AWS CLI nem Python: a linha de comando da AWS roda dentro de um contêiner.
@@ -26,6 +26,7 @@ No PowerShell você só digita comandos que começam com `docker`, e eles são i
 ```text
 Seu computador (Docker)
  ├── floci ............ a "AWS de mentira", na porta 4566
+ ├── console .......... painel no navegador, em http://localhost:8081
  ├── VPC 10.0.0.0/16 .. a rede privada
  │    ├── subnet pública 10.0.1.0/24
  │    │     └── servidor EC2 (Ubuntu + nginx) em 10.0.1.10, site na porta 8080
@@ -66,13 +67,25 @@ cd C:\caminho\para\lab-redes-aws-floci
 docker compose up -d
 ```
 
-Na primeira vez ele baixa a imagem, o que leva alguns minutos. Confira se está no ar:
+Na primeira vez ele baixa as imagens, o que leva alguns minutos. Confira se está no ar:
 
 ```powershell
 docker ps
 ```
 
-Tem que aparecer a linha `floci` com o status `Up`.
+Tem que aparecer as linhas `floci` e `console` com o status `Up`.
+
+### O console no navegador
+
+Abra **http://localhost:8081**. É o StackPort, um painel feito pela comunidade que mostra os recursos do Floci parecido com o console da AWS. Ele é só de leitura: você cria tudo pelos scripts e acompanha por ele.
+
+Onde olhar em cada passo:
+
+- **ec2:** as VPCs, as subnets, os Security Groups e o servidor.
+- **logs:** os registros que a sonda grava.
+- **monitoring → Alarms:** o alarme `site-fora` e o estado dele (`OK` ou `ALARM`).
+
+O próprio Floci tem outro painel, em http://localhost:4566/_floci/ui (ele abre em http://localhost:4500). Ele mostra o servidor e a rede, mas não tem tela de alarmes, por isso o laboratório usa o StackPort.
 
 ## Passo 2: criar a rede
 
@@ -173,6 +186,8 @@ docker compose run --rm cli 05-painel.sh
 
 O painel mostra quatro coisas: a disponibilidade por minuto, a latência média, os últimos logs e o estado do alarme. Com o site no ar, o alarme aparece como `OK`.
 
+No navegador, a mesma informação fica em http://localhost:8081, em **monitoring → Alarms**.
+
 ## Passo 7: derrubar o servidor
 
 Agora a parte importante: simular a falha.
@@ -203,6 +218,8 @@ docker compose run --rm cli 05-painel.sh
 
 No teste, o alarme mudou para `ALARM` 31 segundos depois da queda, com o motivo "Threshold Crossed: 3 datapoint(s) breaching the threshold". A disponibilidade do minuto caiu para 0 e a latência média subiu, por causa das tentativas que esperaram 3 segundos até desistir.
 
+No console (http://localhost:8081, **monitoring → Alarms**), clique no botão de atualizar: o `site-fora` aparece em vermelho, com `ALARM`. Em **ec2**, o servidor aparece como `stopped`.
+
 ## Passo 8: religar
 
 ```powershell
@@ -231,7 +248,7 @@ Apague o servidor e o alarme:
 docker compose run --rm cli 08-limpar.sh
 ```
 
-O script termina mostrando os dois últimos comandos. Desligue o Floci:
+O script termina mostrando os dois últimos comandos. Desligue o Floci e o console:
 
 ```powershell
 docker compose down
@@ -241,6 +258,12 @@ E apague a rede da VPC que o Floci criou no Docker (copie o nome que o script mo
 
 ```powershell
 docker network rm floci-vpc-4566-us-east-1-vpc-cb3beaf4
+```
+
+Se você abriu o painel do próprio Floci (porta 4500), apague também o contêiner dele:
+
+```powershell
+docker rm -f floci-ui
 ```
 
 ## O que o teste mostrou sobre o Floci
@@ -254,7 +277,7 @@ São diferenças em relação à AWS de verdade, e cada uma ensina alguma coisa:
 
 ## Se algo der errado
 
-- **"port is already allocated" no passo 1:** outro programa usa a porta 4566. Feche o programa ou troque a porta no `docker-compose.yml`.
+- **"port is already allocated" no passo 1:** outro programa usa a porta 4566 ou a 8081. Feche o programa ou troque a porta no `docker-compose.yml`.
 - **A sonda mostra `status=000` desde o começo:** o site ainda está instalando. Espere 2 minutos depois do passo 3.
 - **"Cannot connect to the Docker daemon":** o Docker Desktop não está aberto.
 - **Comando não encontrado no PowerShell:** confira se você está dentro da pasta `lab-redes-aws-floci`.
@@ -270,7 +293,7 @@ Floci: [github.com/floci-io/floci](https://github.com/floci-io/floci)
 
 | Arquivo | O que faz |
 |---|---|
-| `docker-compose.yml` | Liga o Floci e define o contêiner `cli` com a linha de comando da AWS |
+| `docker-compose.yml` | Liga o Floci e o console no navegador, e define o contêiner `cli` com a linha de comando da AWS |
 | `01-rede.sh` | Cria a VPC, as subnets, o internet gateway, a rota e o Security Group |
 | `02-servidor.sh` | Sobe o servidor EC2 com o site |
 | `userdata.sh` | Roda quando o servidor liga: instala o nginx e cria a página |

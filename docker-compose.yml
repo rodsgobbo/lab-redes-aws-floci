@@ -9,6 +9,19 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # "console" e um painel no navegador, parecido com o console da AWS (StackPort), so leitura
+  console:
+    image: davireis/stackport:latest
+    container_name: console
+    depends_on: [floci]
+    ports:
+      - "8081:8080"
+    environment:
+      AWS_ENDPOINT_URL: http://floci:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+
   # "cli" e a linha de comando da AWS rodando num conteiner: nao precisa instalar nada
   cli:
     image: amazon/aws-cli:latest
