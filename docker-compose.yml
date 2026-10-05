@@ -1,0 +1,28 @@
+# Laboratorio SENAI: AWS simulada no seu computador com o Floci
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: floci
+    user: root
+    ports:
+      - "4566:4566"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # "cli" e a linha de comando da AWS rodando num conteiner: nao precisa instalar nada
+  cli:
+    image: amazon/aws-cli:latest
+    profiles: ["cli"]
+    working_dir: /lab
+    volumes:
+      - ./:/lab
+    entrypoint: ["bash"]
+    environment:
+      AWS_ENDPOINT_URL: http://floci:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+
+networks:
+  default:
+    name: labnet
