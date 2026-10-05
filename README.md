@@ -113,6 +113,26 @@ Servidor criado: i-64a71dee28c9f485d (o site leva 1 a 2 minutos para ficar pront
 
 O servidor ganhou o IP 10.0.1.10, o primeiro livre da subnet pública. Ao ligar, ele roda o arquivo `userdata.sh`, que instala o nginx e cria a página do site. **Espere 1 a 2 minutos** antes do próximo passo.
 
+Rode este passo **uma vez só**. Se rodar de novo, o script avisa que o servidor já existe.
+
+### Ver o site
+
+Pelo terminal:
+
+```powershell
+docker compose run --rm cli ver-site.sh
+```
+
+Saída esperada: `<h1>Ola, turma de Redes do SENAI!</h1>` e `(HTTP 200 ...)`.
+
+Pelo navegador: o Floci publica no seu computador a porta que o Security Group libera. Descubra qual:
+
+```powershell
+docker ps --filter "name=fwd" --format "{{.Ports}}"
+```
+
+A saída é parecida com `0.0.0.0:30000->8080/tcp`. Abra no navegador o endereço com o primeiro número, por exemplo `http://localhost:30000`.
+
 ## Passo 4: criar o alarme
 
 ```powershell
@@ -228,7 +248,7 @@ docker network rm floci-vpc-4566-us-east-1-vpc-cb3beaf4
 São diferenças em relação à AWS de verdade, e cada uma ensina alguma coisa:
 
 - **A porta 80 já está ocupada.** No Floci, o serviço de metadados do servidor (IMDS) usa a porta 80. O nginx não conseguia subir nela ("bind() to 0.0.0.0:80 failed"), por isso o site usa a 8080. Conflito de porta é um dos erros mais comuns em redes.
-- **O Security Group não bloqueia o tráfego.** As regras são criadas e aparecem na consulta, mas no teste o site respondeu numa porta que o SG não liberava. Na AWS de verdade, o SG bloqueia.
+- **O Security Group funciona pela metade.** Para o seu computador, o Floci só abre as portas que o SG libera (a 8080 aparece como 30000 em diante). Mas entre os contêineres da rede do laboratório, o SG não bloqueia: no teste, o site respondeu numa porta que o SG não liberava. Na AWS de verdade, o SG bloqueia sempre.
 - **O site não volta sozinho depois de religar.** O servidor do Floci é um contêiner sem serviço de inicialização. Na AWS de verdade, o nginx sobe junto com o sistema.
 - **Os VPC Flow Logs não funcionaram.** O Floci cria o Flow Log, mas os registros não chegam ao CloudWatch. O arquivo `09-flowlogs.sh` ficou só como referência.
 
@@ -254,6 +274,7 @@ Floci: [github.com/floci-io/floci](https://github.com/floci-io/floci)
 | `01-rede.sh` | Cria a VPC, as subnets, o internet gateway, a rota e o Security Group |
 | `02-servidor.sh` | Sobe o servidor EC2 com o site |
 | `userdata.sh` | Roda quando o servidor liga: instala o nginx e cria a página |
+| `ver-site.sh` | Mostra a página do site pelo terminal |
 | `03-sonda.sh` | Olha o site a cada 5 segundos e grava métrica e log no CloudWatch |
 | `04-alarme.sh` | Cria o alarme `site-fora` |
 | `05-painel.sh` | Mostra métricas, logs e o estado do alarme |
