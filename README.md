@@ -106,6 +106,10 @@ Security group: sg-80c43c7af271fcefa (libera 8080 e 22)
 |   origem   |  porta  |
 |  0.0.0.0/0 |  8080   |
 |  0.0.0.0/0 |  22     |
+
+Abra no navegador:
+  Console (estilo AWS):  http://localhost:8081
+  Painel do Floci:       http://localhost:4566/_floci/ui
 ```
 
 O que aconteceu: você criou a VPC, uma subnet pública e uma privada, um internet gateway (a saída para a internet), uma tabela de rotas mandando a subnet pública para esse gateway e um Security Group liberando as portas 8080 (site) e 22 (SSH). Os códigos ficam guardados no arquivo `ids.env`, que os próximos passos usam.
@@ -298,7 +302,7 @@ Floci: [github.com/floci-io/floci](https://github.com/floci-io/floci)
 | Arquivo | O que faz |
 |---|---|
 | `docker-compose.yml` | Liga o Floci e o console no navegador, e define o contêiner `cli` com a linha de comando da AWS |
-| `01-rede.sh` | Cria a VPC, as subnets, o internet gateway, a rota e o Security Group |
+| `01-rede.sh` | Cria a VPC, as subnets, o internet gateway, a rota e o Security Group, e mostra os links do console |
 | `02-servidor.sh` | Sobe o servidor EC2 com o site |
 | `userdata.sh` | Roda quando o servidor liga: instala o nginx e cria a página |
 | `ver-site.sh` | Mostra a página do site pelo terminal |

@@ -16,3 +16,7 @@ aws ec2 authorize-security-group-ingress --group-id $SG --protocol tcp --port 22
 echo "--- regras do SG"
 aws ec2 describe-security-groups --group-ids $SG --query 'SecurityGroups[0].IpPermissions[].{porta:FromPort,origem:IpRanges[0].CidrIp}' --output table
 echo "VPC=$VPC PUB=$PUB PRIV=$PRIV SG=$SG IGW=$IGW RT=$RT" > ids.env
+echo ""
+echo "Abra no navegador:"
+echo "  Console (estilo AWS):  http://localhost:8081"
+echo "  Painel do Floci:       http://localhost:4566/_floci/ui"
