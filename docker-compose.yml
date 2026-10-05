@@ -36,6 +36,16 @@ services:
       AWS_SECRET_ACCESS_KEY: test
       AWS_DEFAULT_REGION: us-east-1
 
+  # "desmontar" apaga tudo o que o laboratorio criou no Docker (veja o passo 9 do README)
+  desmontar:
+    image: docker:cli
+    profiles: ["desmontar"]
+    network_mode: none
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/lab
+    entrypoint: ["sh", "/lab/desmontar.sh"]
+
 networks:
   default:
     name: labnet

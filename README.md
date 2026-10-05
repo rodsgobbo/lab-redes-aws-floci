@@ -244,35 +244,37 @@ Esse comando sobe o site de novo. A sonda volta a mostrar `status=200` em poucos
 
 ## Passo 9: apagar tudo
 
-Pare a sonda:
-
-```powershell
-docker rm -f sonda
-```
-
-Apague o servidor e o alarme:
+Primeiro, apague o servidor e o alarme pela linha de comando da AWS, como se faz na nuvem de verdade (lá, servidor esquecido ligado custa dinheiro):
 
 ```powershell
 docker compose run --rm cli 08-limpar.sh
 ```
 
-Se você abriu o painel do próprio Floci (porta 4500), apague o contêiner dele antes de desligar, senão a rede `labnet` fica presa:
+Depois, desmonte o laboratório no seu computador. Este comando apaga a sonda, o servidor, o Floci, os dois painéis e as redes que o laboratório criou no Docker:
 
 ```powershell
-docker rm -f floci-ui
+docker compose run --rm desmontar
 ```
 
-O `08-limpar.sh` termina mostrando os últimos comandos. Desligue o Floci e o console:
+Saída esperada:
+
+```text
+Desmontando o laboratorio...
+Redes de VPC apagadas
+Pronto: nao sobrou nada do laboratorio.
+```
+
+Feche antes a aba do painel do Floci (porta 4500) no navegador: se ela estiver aberta, o painel pode religar sozinho. Se a mensagem disser "Ainda sobrou", rode o comando de novo.
+
+### Liberar espaço em disco (opcional)
+
+O comando acima não apaga as imagens baixadas (cerca de 1,4 GB). Assim, da próxima vez o laboratório liga sem precisar de internet para elas. Se quiser liberar o espaço:
 
 ```powershell
-docker compose down
+docker image rm floci/floci floci/floci-ui amazon/aws-cli davireis/stackport docker:cli
 ```
 
-E apague a rede da VPC que o Floci criou no Docker (copie o nome que o script mostrou):
-
-```powershell
-docker network rm floci-vpc-4566-us-east-1-vpc-cb3beaf4
-```
+O Floci também baixou uma imagem do Ubuntu para o servidor. Veja o nome dela com `docker image ls` e apague do mesmo jeito.
 
 ## O que o teste mostrou sobre o Floci
 
@@ -312,6 +314,7 @@ Floci: [github.com/floci-io/floci](https://github.com/floci-io/floci)
 | `06-derrubar.sh` | Desliga o servidor para simular a falha |
 | `07-religar.sh` | Religa o servidor |
 | `08-limpar.sh` | Apaga o servidor e o alarme |
+| `desmontar.sh` | Apaga do Docker tudo o que o laboratório criou (rodado com `docker compose run --rm desmontar`) |
 | `09-flowlogs.sh` | Referência: VPC Flow Logs (não funciona no Floci 2.1.0) |
 
 ## Licença
