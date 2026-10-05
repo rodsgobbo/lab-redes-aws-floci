@@ -10,7 +10,7 @@ Tudo foi testado do começo ao fim em 05/10/2026, num Windows 11 com Docker Desk
 
 - **Docker Desktop** (Windows ou Mac) ou **Docker Engine** (Linux). No Windows, ele usa o WSL 2 e pede a virtualização ligada na BIOS.
 - **8 GB de RAM** no Windows. O laboratório inteiro usou cerca de 140 MB; o resto é o próprio Docker.
-- **Internet só na primeira vez**, para baixar as imagens. Elas ocupam cerca de 1,3 GB em disco (Floci 323 MB, AWS CLI 649 MB, console 148 MB, Ubuntu 119 MB), mais o nginx que o servidor instala.
+- **Internet só na primeira vez**, para baixar as imagens. Elas ocupam cerca de 1,6 GB em disco (AWS CLI 649 MB, Floci 323 MB, Docker CLI 237 MB, console 148 MB, painel do Floci 140 MB, Ubuntu 119 MB), mais o nginx que o servidor instala.
 - **Os arquivos deste repositório** no seu computador (veja o passo 0).
 
 Você **não** precisa instalar a AWS CLI nem Python: a linha de comando da AWS roda dentro de um contêiner.
@@ -268,13 +268,11 @@ Feche antes a aba do painel do Floci (porta 4500) no navegador: se ela estiver a
 
 ### Liberar espaço em disco (opcional)
 
-O comando acima não apaga as imagens baixadas (cerca de 1,4 GB). Assim, da próxima vez o laboratório liga sem precisar de internet para elas. Se quiser liberar o espaço:
+O comando acima não apaga as imagens baixadas (cerca de 1,6 GB). Assim, da próxima vez o laboratório liga sem precisar de internet para elas. Se quiser liberar o espaço:
 
 ```powershell
-docker image rm floci/floci floci/floci-ui amazon/aws-cli davireis/stackport docker:cli
+docker image rm floci/floci floci/floci-ui amazon/aws-cli davireis/stackport docker:cli public.ecr.aws/docker/library/ubuntu:22.04
 ```
-
-O Floci também baixou uma imagem do Ubuntu para o servidor. Veja o nome dela com `docker image ls` e apague do mesmo jeito.
 
 ## O que o teste mostrou sobre o Floci
 
