@@ -124,7 +124,7 @@ Servidor criado: i-64a71dee28c9f485d (o site leva 1 a 2 minutos para ficar pront
 |  running |  10.0.1.10   |
 ```
 
-O servidor ganhou o IP 10.0.1.10, o primeiro livre da subnet pública. Ao ligar, ele roda o arquivo `userdata.sh`, que instala o nginx e cria a página do site. **Espere 1 a 2 minutos** antes do próximo passo.
+O Floci deu ao servidor o IP 10.0.1.10. Na AWS de verdade seria o 10.0.1.4: em cada subnet, a AWS reserva os 4 primeiros endereços e o último (por isso o console mostra 251 IPs livres numa /24, e não 256). Ao ligar, ele roda o arquivo `userdata.sh`, que instala o nginx e cria a página do site. **Espere 1 a 2 minutos** antes do próximo passo.
 
 Rode este passo **uma vez só**. Se rodar de novo, o script avisa que o servidor já existe.
 
@@ -146,6 +146,8 @@ docker ps --filter "name=fwd" --format "{{.Ports}}"
 
 A saída é parecida com `0.0.0.0:30000->8080/tcp`. Abra no navegador o endereço com o primeiro número, por exemplo `http://localhost:30000`.
 
+Atenção: esse endereço só funciona até o passo 7. Depois de desligar e religar o servidor, o Floci não publica a porta de novo; aí use o `ver-site.sh`.
+
 ## Passo 4: criar o alarme
 
 ```powershell
@@ -153,6 +155,8 @@ docker compose run --rm cli 04-alarme.sh
 ```
 
 O alarme `site-fora` dispara quando a métrica "Disponivel" fica abaixo de 1 em 3 checagens seguidas de 10 segundos.
+
+Ele já nasce em `ALARM`, e isso é de propósito: a sonda ainda não mandou nenhum dado, e o alarme trata dado ausente como falha. Se o monitoramento parou de falar, você não sabe se está tudo bem. Ele vai para `OK` uns 15 segundos depois de você ligar a sonda no próximo passo.
 
 ## Passo 5: ligar a sonda
 
@@ -176,7 +180,7 @@ Saída esperada:
 18:07:47 status=200 latencia=1ms disponivel=1
 ```
 
-`status=200` quer dizer que o site respondeu certo. A latência é o tempo de resposta.
+`status=200` quer dizer que o site respondeu certo. A latência é o tempo de resposta. O horário está em UTC, 3 horas à frente de Brasília: servidores do mundo todo usam UTC para não se confundir com fuso horário. O console converte para o seu horário.
 
 ## Passo 6: olhar o painel
 
@@ -184,7 +188,7 @@ Saída esperada:
 docker compose run --rm cli 05-painel.sh
 ```
 
-O painel mostra quatro coisas: a disponibilidade por minuto, a latência média, os últimos logs e o estado do alarme. Com o site no ar, o alarme aparece como `OK`.
+O painel mostra quatro coisas: a disponibilidade por minuto (mínimo e média), a latência média, os últimos logs e o estado do alarme. Com o site no ar, a disponibilidade fica em 1.0 e o alarme aparece como `OK`.
 
 No navegador, a mesma informação fica em http://localhost:8081, em **monitoring → Alarms**.
 
@@ -205,18 +209,18 @@ docker logs --tail 5 sonda
 Saída esperada:
 
 ```text
-18:08:34 status=200 latencia=1ms disponivel=1
-18:08:40 status=000 latencia=1ms disponivel=0
-18:08:49 status=000 latencia=3003ms disponivel=0
+19:44:10 status=200 latencia=2ms disponivel=1
+19:44:19 status=000 latencia=3002ms disponivel=0
+19:44:27 status=000 latencia=3002ms disponivel=0
 ```
 
-`status=000` quer dizer que ninguém respondeu. Espere uns 40 segundos e abra o painel de novo:
+O servidor leva uns 30 segundos para desligar, então a sonda ainda mostra `status=200` logo depois do comando. Repita o `docker logs` até aparecer `status=000`, que quer dizer que ninguém respondeu. A partir daí, espere mais 30 segundos e abra o painel de novo:
 
 ```powershell
 docker compose run --rm cli 05-painel.sh
 ```
 
-No teste, o alarme mudou para `ALARM` 31 segundos depois da queda, com o motivo "Threshold Crossed: 3 datapoint(s) breaching the threshold". A disponibilidade do minuto caiu para 0 e a latência média subiu, por causa das tentativas que esperaram 3 segundos até desistir.
+No teste, o alarme mudou para `ALARM` 26 a 31 segundos depois da primeira falha (cerca de 1 minuto depois do comando), com o motivo "Threshold Crossed: 3 datapoint(s) breaching the threshold". A disponibilidade do minuto caiu para 0 e a latência média subiu, por causa das tentativas que esperaram 3 segundos até desistir.
 
 No console (http://localhost:8081, **monitoring → Alarms**), clique no botão de atualizar: o `site-fora` aparece em vermelho, com `ALARM`. Em **ec2**, o servidor aparece como `stopped`.
 
@@ -232,7 +236,7 @@ O script religa o servidor e mostra um comando para você rodar. Ele é parecido
 docker exec floci-ec2-i-64a71dee28c9f485d nginx
 ```
 
-Esse comando sobe o site de novo. Em uns 30 a 40 segundos, a sonda volta a mostrar `status=200` e o alarme volta para `OK`.
+Esse comando sobe o site de novo. A sonda volta a mostrar `status=200` em poucos segundos, e o alarme volta para `OK` uns 20 segundos depois. Para ver o site, use o `ver-site.sh`: o endereço `localhost:30000` não volta depois de religar.
 
 ## Passo 9: apagar tudo
 
@@ -248,7 +252,13 @@ Apague o servidor e o alarme:
 docker compose run --rm cli 08-limpar.sh
 ```
 
-O script termina mostrando os dois últimos comandos. Desligue o Floci e o console:
+Se você abriu o painel do próprio Floci (porta 4500), apague o contêiner dele antes de desligar, senão a rede `labnet` fica presa:
+
+```powershell
+docker rm -f floci-ui
+```
+
+O `08-limpar.sh` termina mostrando os últimos comandos. Desligue o Floci e o console:
 
 ```powershell
 docker compose down
@@ -260,19 +270,13 @@ E apague a rede da VPC que o Floci criou no Docker (copie o nome que o script mo
 docker network rm floci-vpc-4566-us-east-1-vpc-cb3beaf4
 ```
 
-Se você abriu o painel do próprio Floci (porta 4500), apague também o contêiner dele:
-
-```powershell
-docker rm -f floci-ui
-```
-
 ## O que o teste mostrou sobre o Floci
 
 São diferenças em relação à AWS de verdade, e cada uma ensina alguma coisa:
 
 - **A porta 80 já está ocupada.** No Floci, o serviço de metadados do servidor (IMDS) usa a porta 80. O nginx não conseguia subir nela ("bind() to 0.0.0.0:80 failed"), por isso o site usa a 8080. Conflito de porta é um dos erros mais comuns em redes.
 - **O Security Group funciona pela metade.** Para o seu computador, o Floci só abre as portas que o SG libera (a 8080 aparece como 30000 em diante). Mas entre os contêineres da rede do laboratório, o SG não bloqueia: no teste, o site respondeu numa porta que o SG não liberava. Na AWS de verdade, o SG bloqueia sempre.
-- **O site não volta sozinho depois de religar.** O servidor do Floci é um contêiner sem serviço de inicialização. Na AWS de verdade, o nginx sobe junto com o sistema.
+- **O site não volta sozinho depois de religar.** O servidor do Floci é um contêiner sem serviço de inicialização. Na AWS de verdade, o nginx sobe junto com o sistema. Além disso, a porta publicada no seu computador (30000) não é recriada.
 - **Os VPC Flow Logs não funcionaram.** O Floci cria o Flow Log, mas os registros não chegam ao CloudWatch. O arquivo `09-flowlogs.sh` ficou só como referência.
 
 ## Se algo der errado
