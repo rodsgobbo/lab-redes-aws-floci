@@ -70,10 +70,18 @@ docker compose up -d
 Na primeira vez ele baixa as imagens, o que leva alguns minutos. Confira se está no ar:
 
 ```powershell
-docker ps
+docker compose ps --format "table {{.Name}}\t{{.Status}}"
 ```
 
-Tem que aparecer as linhas `floci` e `console` com o status `Up`.
+Saída esperada:
+
+```text
+NAME      STATUS
+console   Up 2 minutes
+floci     Up 2 minutes (healthy)
+```
+
+Esse comando mostra só o que o laboratório ligou. O `docker ps` mostraria também qualquer outro contêiner que você tenha no computador.
 
 ### O console no navegador
 
