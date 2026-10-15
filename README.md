@@ -234,13 +234,20 @@ No console (http://localhost:8081, **monitoring → Alarms**), clique no botão 
 docker compose run --rm cli 07-religar.sh
 ```
 
-O script religa o servidor e mostra um comando para você rodar. Ele é parecido com este (o código muda):
+O servidor volta, mas o site não: no Floci, o servidor é um contêiner sem serviço de inicialização, então o nginx não sobe sozinho. Suba o site com:
 
 ```powershell
-docker exec floci-ec2-i-64a71dee28c9f485d nginx
+docker compose run --rm subir-site
 ```
 
-Esse comando sobe o site de novo. A sonda volta a mostrar `status=200` em poucos segundos, e o alarme volta para `OK` uns 20 segundos depois. Para ver o site, use o `ver-site.sh`: o endereço `localhost:30000` não volta depois de religar.
+Saída esperada:
+
+```text
+Esperando o servidor i-64a71dee28c9f485d ligar...
+Site no ar de novo. Confira com: docker logs --tail 5 sonda
+```
+
+O comando lê o código do servidor no `ids.env`, então é sempre igual: não precisa copiar nada. A sonda volta a mostrar `status=200` em poucos segundos, e o alarme volta para `OK` uns 20 segundos depois. Para ver o site, use o `ver-site.sh`: o endereço `localhost:30000` não volta depois de religar.
 
 ## Passo 9: apagar tudo
 
@@ -311,6 +318,7 @@ Floci: [github.com/floci-io/floci](https://github.com/floci-io/floci)
 | `05-painel.sh` | Mostra métricas, logs e o estado do alarme |
 | `06-derrubar.sh` | Desliga o servidor para simular a falha |
 | `07-religar.sh` | Religa o servidor |
+| `subir-site.sh` | Sobe o site de novo depois de religar (rodado com `docker compose run --rm subir-site`) |
 | `08-limpar.sh` | Apaga o servidor e o alarme |
 | `desmontar.sh` | Apaga do Docker tudo o que o laboratório criou (rodado com `docker compose run --rm desmontar`) |
 | `09-flowlogs.sh` | Referência: VPC Flow Logs (não funciona no Floci 2.1.0) |
