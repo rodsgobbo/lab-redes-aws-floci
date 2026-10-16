@@ -142,23 +142,22 @@ Rode este passo **uma vez só**. Se rodar de novo, o script avisa que o servidor
 
 ### Ver o site
 
-Pelo terminal:
-
 ```powershell
-docker compose run --rm cli ver-site.sh
+docker compose run --rm ver-site
 ```
 
-Saída esperada: `<h1>Ola, turma de Redes do SENAI!</h1>` e `(HTTP 200 ...)`.
+Saída esperada:
 
-Pelo navegador: o Floci publica no seu computador a porta que o Security Group libera. Descubra qual:
+```text
+Testando o site por dentro da rede do laboratorio...
+O site respondeu: <h1>Ola, turma de Redes do SENAI!</h1>
 
-```powershell
-docker ps --filter "name=fwd" --format "{{.Ports}}"
+Abra no navegador do seu computador:  http://localhost:30000
 ```
 
-A saída é parecida com `0.0.0.0:30000->8080/tcp`. Abra no navegador o endereço com o primeiro número, por exemplo `http://localhost:30000`.
+O comando testa o site e mostra o endereço para abrir no navegador. O Floci publica no seu computador a porta que o Security Group libera (a 8080 do servidor aparece como 30000 em diante).
 
-Atenção: esse endereço só funciona até o passo 7. Depois de desligar e religar o servidor, o Floci não publica a porta de novo; aí use o `ver-site.sh`.
+Atenção: o endereço do navegador só funciona até o passo 7. Depois de desligar e religar o servidor, o Floci não publica a porta de novo; aí o site só aparece por este comando.
 
 ## Passo 4: criar o alarme
 
@@ -255,7 +254,7 @@ Esperando o servidor i-64a71dee28c9f485d ligar...
 Site no ar de novo. Confira com: docker logs --tail 5 sonda
 ```
 
-O comando lê o código do servidor no `ids.env`, então é sempre igual: não precisa copiar nada. A sonda volta a mostrar `status=200` em poucos segundos, e o alarme volta para `OK` uns 20 segundos depois. Para ver o site, use o `ver-site.sh`: o endereço `localhost:30000` não volta depois de religar.
+O comando lê o código do servidor no `ids.env`, então é sempre igual: não precisa copiar nada. A sonda volta a mostrar `status=200` em poucos segundos, e o alarme volta para `OK` uns 20 segundos depois. Para ver o site, use `docker compose run --rm ver-site`: o endereço `localhost:30000` não volta depois de religar.
 
 ## Passo 9: apagar tudo
 
@@ -320,7 +319,7 @@ Floci: [github.com/floci-io/floci](https://github.com/floci-io/floci)
 | `01-rede.sh` | Cria a VPC, as subnets, o internet gateway, a rota e o Security Group, e mostra os links do console |
 | `02-servidor.sh` | Sobe o servidor EC2 com o site |
 | `userdata.sh` | Roda quando o servidor liga: instala o nginx e cria a página |
-| `ver-site.sh` | Mostra a página do site pelo terminal |
+| `ver-site.sh` | Testa o site e mostra o endereço para o navegador (rodado com `docker compose run --rm ver-site`) |
 | `03-sonda.sh` | Olha o site a cada 5 segundos e grava métrica e log no CloudWatch |
 | `04-alarme.sh` | Cria o alarme `site-fora` |
 | `05-painel.sh` | Mostra métricas, logs e o estado do alarme |

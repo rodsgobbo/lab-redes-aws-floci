@@ -13,4 +13,4 @@ echo "Servidor criado: $ID (o site leva 1 a 2 minutos para ficar pronto)"
 sleep 5
 aws ec2 describe-instances --instance-ids $ID --query 'Reservations[0].Instances[0].{estado:State.Name,ip_privado:PrivateIpAddress}' --output table
 echo ""
-echo "Daqui a 2 minutos, veja o site com: docker compose run --rm cli ver-site.sh"
+echo "Daqui a 2 minutos, veja o site com: docker compose run --rm ver-site"

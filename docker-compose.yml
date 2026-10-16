@@ -36,6 +36,15 @@ services:
       AWS_SECRET_ACCESS_KEY: test
       AWS_DEFAULT_REGION: us-east-1
 
+  # "ver-site" testa o site e mostra o endereco para o navegador
+  ver-site:
+    image: docker:cli
+    profiles: ["ver-site"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/lab
+    entrypoint: ["sh", "/lab/ver-site.sh"]
+
   # "subir-site" sobe o nginx de novo depois de religar o servidor (passo 8 do README)
   subir-site:
     image: docker:cli
