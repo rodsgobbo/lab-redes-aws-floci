@@ -4,13 +4,13 @@ Rede, servidor e observabilidade, **sem conta na AWS e sem cartão de crédito**
 
 Neste laboratório você monta, no seu próprio computador, a mesma rede que viu na palestra: uma VPC com duas subnets, um servidor com um site e uma "sonda" que vigia o site. Depois você derruba o servidor de propósito e vê o alarme disparar, como um time de SRE ou de NOC vê na vida real.
 
-Tudo foi testado do começo ao fim em 05/10/2026, num Windows 11 com Docker Desktop, usando o Floci 2.1.0. As saídas mostradas aqui são as que apareceram no teste; os códigos (como `vpc-...` e `i-...`) mudam a cada vez.
+Tudo foi testado do começo ao fim num Windows 11 com Docker Desktop, usando o Floci 2.1.0 (primeiro teste em 05/10/2026; os comandos `ver-site`, `subir-site` e `desmontar` foram testados em 16/10/2026). As saídas mostradas aqui são as que apareceram no teste; os códigos (como `vpc-...` e `i-...`) mudam a cada vez.
 
 ## O que você precisa
 
 - **Docker Desktop** (Windows ou Mac) ou **Docker Engine** (Linux). No Windows, ele usa o WSL 2 e pede a virtualização ligada na BIOS.
 - **8 GB de RAM** no Windows. O laboratório inteiro usou cerca de 140 MB; o resto é o próprio Docker.
-- **Internet só na primeira vez**, para baixar as imagens. Elas ocupam cerca de 1,6 GB em disco (AWS CLI 649 MB, Floci 323 MB, Docker CLI 237 MB, console 148 MB, painel do Floci 140 MB, Ubuntu 119 MB), mais o nginx que o servidor instala.
+- **Internet** em dois momentos: na primeira vez, para baixar as imagens, e **sempre que você cria o servidor** (passo 3), porque ele instala o nginx da internet. As imagens ocupam cerca de 1,6 GB em disco (AWS CLI 649 MB, Floci 323 MB, Docker CLI 237 MB, console 148 MB, painel do Floci 140 MB, Ubuntu 119 MB).
 - **Os arquivos deste repositório** no seu computador (veja o passo 0).
 
 Você **não** precisa instalar a AWS CLI nem Python: a linha de comando da AWS roda dentro de um contêiner.
@@ -21,6 +21,31 @@ Funciona, e foi testado justamente num Windows 11. Os arquivos `.sh` são script
 
 No PowerShell você só digita comandos que começam com `docker`, e eles são iguais no Windows, no Mac e no Linux. Não abra os `.sh` com duplo clique. Se quiser ler ou mudar um deles, use o VS Code (veja "Se algo der errado").
 
+## Resumo dos comandos
+
+Todos rodam no PowerShell (ou no terminal do Mac e do Linux), dentro da pasta do laboratório. Cada passo está explicado mais abaixo.
+
+| Passo | Comando |
+|---|---|
+| 1. Ligar o Floci e o console | `docker compose up -d` |
+| 1. Conferir | `docker compose ps --format "table {{.Name}}\t{{.Status}}"` |
+| 2. Criar a rede | `docker compose run --rm cli 01-rede.sh` |
+| 3. Subir o servidor | `docker compose run --rm cli 02-servidor.sh` |
+| 3. Ver o site (1 a 2 min depois) | `docker compose run --rm ver-site` |
+| 4. Criar o alarme | `docker compose run --rm cli 04-alarme.sh` |
+| 5. Ligar a sonda | `docker compose run -d --name sonda cli 03-sonda.sh` |
+| 5. Ver a sonda | `docker logs --tail 5 sonda` |
+| 6. Painel | `docker compose run --rm cli 05-painel.sh` |
+| 7. Derrubar o servidor | `docker compose run --rm cli 06-derrubar.sh` |
+| 8. Religar o servidor | `docker compose run --rm cli 07-religar.sh` |
+| 8. Subir o site de novo | `docker compose run --rm subir-site` |
+| 9. Apagar servidor e alarme | `docker compose run --rm cli 08-limpar.sh` |
+| 9. Desmontar tudo | `docker compose run --rm desmontar` |
+
+Rode todos os passos **na mesma pasta**: o passo 2 grava os códigos da rede e do servidor no arquivo `ids.env`, e os passos seguintes leem esse arquivo.
+
+No navegador: o console fica em http://localhost:8081, e o site, no endereço que o `ver-site` mostrar (em geral http://localhost:30000).
+
 ## O que você vai montar
 
 ```text
@@ -30,6 +55,7 @@ Seu computador (Docker)
  ├── VPC 10.0.0.0/16 .. a rede privada
  │    ├── subnet pública 10.0.1.0/24
  │    │     └── servidor EC2 (Ubuntu + nginx) em 10.0.1.10, site na porta 8080
+ │    │           (no navegador: http://localhost:30000)
  │    └── subnet privada 10.0.2.0/24
  ├── sonda ............ olha o site a cada 5 segundos
  └── CloudWatch ....... guarda métricas, logs e o alarme "site-fora"
@@ -301,6 +327,10 @@ São diferenças em relação à AWS de verdade, e cada uma ensina alguma coisa:
 
 - **"port is already allocated" no passo 1:** outro programa usa a porta 4566 ou a 8081. Feche o programa ou troque a porta no `docker-compose.yml`.
 - **A sonda mostra `status=000` desde o começo:** o site ainda está instalando. Espere 2 minutos depois do passo 3.
+- **O site nunca fica pronto depois do passo 3:** o servidor precisa de internet para instalar o nginx. Confira a sua conexão, rode `docker compose run --rm desmontar` e depois `docker compose up -d`, e comece de novo do passo 2.
+- **O `ver-site` diz "Nao achei o servidor no ids.env":** você está numa pasta diferente da que usou nos passos 2 e 3. Volte para ela.
+- **O site não volta depois de religar:** falta o `docker compose run --rm subir-site` (passo 8).
+- **Tudo parou de repente e os contêineres aparecem como `Exited (255)`:** o Docker Desktop reiniciou, quase sempre por causa de uma atualização automática. Rode `docker compose up -d` e comece do passo 2. Antes de uma apresentação, desligue as atualizações automáticas nas configurações do Docker Desktop.
 - **"Cannot connect to the Docker daemon":** o Docker Desktop não está aberto.
 - **Comando não encontrado no PowerShell:** confira se você está dentro da pasta `lab-redes-aws-floci`.
 - **Erro estranho como `$'\r': command not found`:** você editou um arquivo `.sh` num editor do Windows e ele salvou com fim de linha do Windows (CRLF). No VS Code, troque para LF no canto inferior direito e salve de novo.
@@ -315,7 +345,8 @@ Floci: [github.com/floci-io/floci](https://github.com/floci-io/floci)
 
 | Arquivo | O que faz |
 |---|---|
-| `docker-compose.yml` | Liga o Floci e o console no navegador, e define o contêiner `cli` com a linha de comando da AWS |
+| `docker-compose.yml` | Liga o Floci e o console no navegador, e define os serviços `cli` (linha de comando da AWS), `ver-site`, `subir-site` e `desmontar` |
+| `ids.env` | Criado no passo 2: guarda os códigos da rede e do servidor (não vai para o GitHub) |
 | `01-rede.sh` | Cria a VPC, as subnets, o internet gateway, a rota e o Security Group, e mostra os links do console |
 | `02-servidor.sh` | Sobe o servidor EC2 com o site |
 | `userdata.sh` | Roda quando o servidor liga: instala o nginx e cria a página |
