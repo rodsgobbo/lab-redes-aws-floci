@@ -22,3 +22,23 @@ if docker exec "$SERVIDOR" pgrep -x nginx >/dev/null 2>&1; then
 else
   docker exec "$SERVIDOR" nginx && echo "Site no ar de novo. Confira com: docker logs --tail 5 sonda"
 fi
+
+# Depois de religar, o Floci nao publica de novo a porta do site no seu computador.
+# Aqui a gente recria essa ponte (porta 30000 em diante -> porta 8080 do servidor).
+PONTE="floci-ec2-fwd-$ID-8080"
+PORTA=$(docker port "$PONTE" 8080 2>/dev/null | head -1 | sed 's/.*://')
+if [ -z "$PORTA" ]; then
+  docker rm -f "$PONTE" >/dev/null 2>&1
+  docker image inspect alpine/socat >/dev/null 2>&1 || docker pull -q alpine/socat >/dev/null
+  for P in 30000 30001 30002 30003 30004 30005 30006 30007 30008 30009; do
+    if docker run -d --name "$PONTE" --network labnet -p "$P:8080" alpine/socat \
+         TCP-LISTEN:8080,fork,reuseaddr "TCP:$SERVIDOR:8080" >/dev/null 2>&1; then
+      PORTA=$P
+      break
+    fi
+    docker rm -f "$PONTE" >/dev/null 2>&1
+  done
+fi
+if [ -n "$PORTA" ]; then
+  echo "No navegador do seu computador:  http://localhost:$PORTA"
+fi

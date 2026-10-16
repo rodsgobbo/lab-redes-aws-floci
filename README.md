@@ -183,7 +183,7 @@ Abra no navegador do seu computador:  http://localhost:30000
 
 O comando testa o site e mostra o endereço para abrir no navegador. O Floci publica no seu computador a porta que o Security Group libera (a 8080 do servidor aparece como 30000 em diante).
 
-Atenção: o endereço do navegador só funciona até o passo 7. Depois de desligar e religar o servidor, o Floci não publica a porta de novo; aí o site só aparece por este comando.
+Deixe essa aba aberta: quando você derrubar o servidor no passo 7, a página para de responder, e volta depois do passo 8.
 
 ## Passo 4: criar o alarme
 
@@ -278,9 +278,10 @@ Saída esperada:
 ```text
 Esperando o servidor i-64a71dee28c9f485d ligar...
 Site no ar de novo. Confira com: docker logs --tail 5 sonda
+No navegador do seu computador:  http://localhost:30000
 ```
 
-O comando lê o código do servidor no `ids.env`, então é sempre igual: não precisa copiar nada. A sonda volta a mostrar `status=200` em poucos segundos, e o alarme volta para `OK` uns 20 segundos depois. Para ver o site, use `docker compose run --rm ver-site`: o endereço `localhost:30000` não volta depois de religar.
+O comando lê o código do servidor no `ids.env`, então é sempre igual: não precisa copiar nada. A sonda volta a mostrar `status=200` em poucos segundos, e o alarme volta para `OK` uns 20 segundos depois. Depois de religar, o Floci não publica de novo a porta do site no seu computador. O `subir-site` recria essa ponte e mostra o endereço: atualize a aba do navegador e o site volta.
 
 ## Passo 9: apagar tudo
 
@@ -311,7 +312,7 @@ Feche antes a aba do painel do Floci (porta 4500) no navegador: se ela estiver a
 O comando acima não apaga as imagens baixadas (cerca de 1,6 GB). Assim, da próxima vez o laboratório liga sem precisar de internet para elas. Se quiser liberar o espaço:
 
 ```powershell
-docker image rm floci/floci floci/floci-ui amazon/aws-cli davireis/stackport docker:cli public.ecr.aws/docker/library/ubuntu:22.04
+docker image rm floci/floci floci/floci-ui amazon/aws-cli davireis/stackport docker:cli alpine/socat public.ecr.aws/docker/library/ubuntu:22.04
 ```
 
 ## O que o teste mostrou sobre o Floci
@@ -320,7 +321,7 @@ São diferenças em relação à AWS de verdade, e cada uma ensina alguma coisa:
 
 - **A porta 80 já está ocupada.** No Floci, o serviço de metadados do servidor (IMDS) usa a porta 80. O nginx não conseguia subir nela ("bind() to 0.0.0.0:80 failed"), por isso o site usa a 8080. Conflito de porta é um dos erros mais comuns em redes.
 - **O Security Group funciona pela metade.** Para o seu computador, o Floci só abre as portas que o SG libera (a 8080 aparece como 30000 em diante). Mas entre os contêineres da rede do laboratório, o SG não bloqueia: no teste, o site respondeu numa porta que o SG não liberava. Na AWS de verdade, o SG bloqueia sempre.
-- **O site não volta sozinho depois de religar.** O servidor do Floci é um contêiner sem serviço de inicialização. Na AWS de verdade, o nginx sobe junto com o sistema. Além disso, a porta publicada no seu computador (30000) não é recriada.
+- **O site não volta sozinho depois de religar.** O servidor do Floci é um contêiner sem serviço de inicialização. Na AWS de verdade, o nginx sobe junto com o sistema. Ele também não recria a porta publicada no seu computador (30000); o `subir-site` faz isso com um pequeno contêiner (`alpine/socat`) que repassa a porta para o servidor.
 - **Os VPC Flow Logs não funcionaram.** O Floci cria o Flow Log, mas os registros não chegam ao CloudWatch. O arquivo `09-flowlogs.sh` ficou só como referência.
 
 ## Se algo der errado
@@ -329,7 +330,7 @@ São diferenças em relação à AWS de verdade, e cada uma ensina alguma coisa:
 - **A sonda mostra `status=000` desde o começo:** o site ainda está instalando. Espere 2 minutos depois do passo 3.
 - **O site nunca fica pronto depois do passo 3:** o servidor precisa de internet para instalar o nginx. Confira a sua conexão, rode `docker compose run --rm desmontar` e depois `docker compose up -d`, e comece de novo do passo 2.
 - **O `ver-site` diz "Nao achei o servidor no ids.env":** você está numa pasta diferente da que usou nos passos 2 e 3. Volte para ela.
-- **O site não volta depois de religar:** falta o `docker compose run --rm subir-site` (passo 8).
+- **O site não volta depois de religar, nem no navegador:** falta o `docker compose run --rm subir-site` (passo 8).
 - **Tudo parou de repente e os contêineres aparecem como `Exited (255)`:** o Docker Desktop reiniciou, quase sempre por causa de uma atualização automática. Rode `docker compose up -d` e comece do passo 2. Antes de uma apresentação, desligue as atualizações automáticas nas configurações do Docker Desktop.
 - **"Cannot connect to the Docker daemon":** o Docker Desktop não está aberto.
 - **Comando não encontrado no PowerShell:** confira se você está dentro da pasta `lab-redes-aws-floci`.

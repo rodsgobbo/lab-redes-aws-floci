@@ -20,6 +20,6 @@ PORTA=$(docker port "floci-ec2-fwd-$ID-8080" 8080 2>/dev/null | head -1 | sed 's
 if [ -n "$PORTA" ]; then
   echo "Abra no navegador do seu computador:  http://localhost:$PORTA"
 else
-  echo "Depois de religar, o Floci nao publica o site no seu computador de novo,"
-  echo "entao ele so pode ser visto por este comando, nao pelo navegador."
+  echo "O site ainda nao esta publicado no seu computador."
+  echo "Se voce acabou de religar o servidor, rode: docker compose run --rm subir-site"
 fi
